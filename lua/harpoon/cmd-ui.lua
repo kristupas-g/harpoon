@@ -1,4 +1,5 @@
 local harpoon = require("harpoon")
+local tmux = require("harpoon.tmux")
 local popup = require("plenary.popup")
 local utils = require("harpoon.utils")
 local log = require("harpoon.dev").log
@@ -70,8 +71,7 @@ end
 
 function M.toggle_quick_menu()
     log.trace("cmd-ui#toggle_quick_menu()")
-    if
-        Harpoon_cmd_win_id ~= nil
+    if Harpoon_cmd_win_id ~= nil
         and vim.api.nvim_win_is_valid(Harpoon_cmd_win_id)
     then
         close_menu()
@@ -112,8 +112,15 @@ function M.toggle_quick_menu()
     vim.api.nvim_buf_set_keymap(
         Harpoon_cmd_bufh,
         "n",
-        "<CR>",
-        "<Cmd>lua require('harpoon.cmd-ui').select_menu_item()<CR>",
+        "<S-Enter>",
+        "<Cmd>lua require('harpoon.cmd-ui').select_menu_item_term()<CR>",
+        {}
+    )
+    vim.api.nvim_buf_set_keymap(
+        Harpoon_cmd_bufh,
+        "n",
+        "<Enter>",
+        "<Cmd>lua require('harpoon.cmd-ui').select_menu_item_tmux()<CR>",
         {}
     )
     vim.cmd(
@@ -138,8 +145,8 @@ function M.toggle_quick_menu()
     )
 end
 
-function M.select_menu_item()
-    log.trace("cmd-ui#select_menu_item()")
+function M.select_menu_item_term()
+    log.trace("cmd-ui#select_menu_item_term()")
     local cmd = vim.fn.line(".")
     close_menu(true)
     local answer = vim.fn.input("Terminal index (default to 1): ")
@@ -149,6 +156,21 @@ function M.select_menu_item()
     local idx = tonumber(answer)
     if idx then
         term.sendCommand(idx, cmd)
+    end
+end
+
+function M.select_menu_item_tmux()
+    log.trace("cmd-ui#select_menu_item_tmux()")
+    local cmd = vim.fn.line(".")
+    close_menu(true)
+    local answer = vim.fn.input("Terminal index (default to 1): ")
+    if answer == "" then
+        answer = "1"
+    end
+    local idx = tonumber(answer)
+    if idx and type(cmd) == "number" then
+        cmd = harpoon.get_term_config().cmds[cmd]
+        tmux.sendCommand("{right-of}", cmd)
     end
 end
 
